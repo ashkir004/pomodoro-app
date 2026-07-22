@@ -2,12 +2,14 @@
     import { Tween } from "svelte/motion";
     import { linear } from "svelte/easing";
 
-    const WORK_DURATION = 5 * 60; // 5 mins > 300 seconds
+    const WORK_DURATION = 1 * 60; // 5 mins > 300 seconds
     let totalSeconds = WORK_DURATION;
     let secondsLeft = $state(totalSeconds);
     let timerId = $state<number | undefined>(undefined);
     let endTime = $state(0);
     let isRunning = $derived(timerId !== undefined);
+    let isPaused = $derived(!isRunning && secondsLeft < totalSeconds);
+    let isCompleted = $derived(secondsLeft === 0);
     let progress = $derived(new Tween(1, { duration: 400, easing: linear }).current);
     let progressDegrees = $derived(progress * 360);
     let capRotation = $derived(progressDegrees);
@@ -30,23 +32,17 @@
         }, 200);
     }
 
-    $effect(() => {
-        if (secondsLeft <= 0) {
-            return alert("Time's up!");
-        }
-
-        startTimer();
-    });
-
     function pauseTimer() {
         if (timerId !== undefined) {
             clearInterval(timerId);
             timerId = undefined;
+            secondsLeft = Math.ceil((endTime - Date.now()) / 1000);
+            isPaused = true;
         }
+
     }
 
     function resetTimer() {
-        pauseTimer();
         secondsLeft = WORK_DURATION;
         progress = 1;
     }
@@ -55,7 +51,17 @@
         pauseTimer();
         secondsLeft = 0;
         progress = 0;
-        alert("Time to take a break!");
+    }
+
+    function timerControls() {
+        if (isRunning) {
+            pauseTimer();
+        } else if (isCompleted) {
+            resetTimer();
+            startTimer();
+        } else {
+            startTimer();
+        }
     }
 
 
@@ -70,18 +76,30 @@
                     style="--progress-angle: {progressDegrees}deg;">
 
                     <div data-theme="red" class="absolute w-2 h-2 rounded-[50%] z-10
-                    top-0 left-1/2 -translate-x-1/2"></div>
+                    top-0 left-1/2 -translate-x-1/2 {isCompleted ? 'hidden' : ''}"></div>
 
                     <div data-theme="red" class="absolute w-2 h-2 rounded-[50%] z-10
-                    top-0 left-1/2 origin-[50%_1600%] md:origin-[50%_1800%] -translate-x-1/2"
+                    top-0 left-1/2 origin-[50%_1600%] md:origin-[50%_1800%] -translate-x-1/2 {isCompleted ? 'hidden' : ''}"
                     style="transform: rotate({capRotation}deg);"></div>
 
                     <div class="inner-mask bg-surface-darkest flex flex-col items-center justify-center rounded-full w-full h-full">
-                        <div class="time-display text-on-surface flex flex-col gap-2 items-center justify-center outline-1">
+                        <div class="time-display text-on-surface flex flex-col gap-2 items-center justify-center">
                             <h1 class="text-[5rem] md:text-[6rem] font-sans font-bold">
-                                {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}
+                                {String(Math.floor(secondsLeft / 60)).padStart(2, '0')}:{String(secondsLeft % 60).padStart(2, '0')}
                             </h1>
-                            <button class="text-sm font-extrabold uppercase tracking-[.5rem] active:scale-95 transition-transform" >Pause</button>
+                            <button class="text-sm font-extrabold uppercase tracking-[.5rem] active:scale-95 transition-transform cursor-pointer"
+                                    onclick={timerControls}
+                                >
+                                 {#if isRunning}
+                                    Pause
+                                {:else if isCompleted}
+                                    Restart
+                                {:else if isPaused}
+                                    Resume
+                                {:else}
+                                    Start
+                                {/if}
+                            </button>
                         </div>
                     </div>
                 </div>
