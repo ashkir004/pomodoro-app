@@ -25,6 +25,8 @@
     --color-surface-dark: var(--primary-blue-850);
     --color-surface-light: var(--primary-blue-100);
     --color-surface-lighter: var(--primary-blue-50);
+
+    --color-on-surface: var(--secondary-color);
 }
 
 body {
@@ -35,6 +37,7 @@ body {
 
 [data-theme="red"] {
     background-color: var(--accent-red);
+    color: var(--accent-red);
 }
 
 [data-theme="purple"] {
